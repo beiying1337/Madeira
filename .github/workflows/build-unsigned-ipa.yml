@@ -82,7 +82,9 @@ jobs:
             -target Madeira \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            SYMROOT="$RUNNER_TEMP/DerivedData/Build/Products" \
+            OBJROOT="$RUNNER_TEMP/DerivedData/Build/Intermediates.noindex" \
+            CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY= \
