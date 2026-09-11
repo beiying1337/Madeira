@@ -25,10 +25,33 @@ if [ ! -f wine/build-macos/include/config.h ]; then
         --without-gnutls --without-gstreamer --without-oss --without-pulse \
         --without-sdl --without-udev --without-v4l2 --without-wayland --without-x)
 fi
-WINE_IDL_HEADERS=()
-for idl in wine/include/*.idl; do
-    WINE_IDL_HEADERS+=("include/$(basename "$idl" .idl).h")
-done
+WINE_IDL_HEADERS=(
+    include/wtypesbase.h
+    include/wtypes.h
+    include/unknwn.h
+    include/objidlbase.h
+    include/objidl.h
+    include/oaidl.h
+    include/oleidl.h
+    include/propidl.h
+    include/servprov.h
+    include/urlmon.h
+    include/msxml.h
+    include/dxgiformat.h
+    include/dxgicommon.h
+    include/dxgitype.h
+    include/dcommon.h
+    include/ocidl.h
+    include/d3dcommon.h
+    include/dxgi.h
+    include/d3d10.h
+    include/d3d10_1.h
+    include/d2d1.h
+    include/dwrite.h
+    include/dwrite_1.h
+    include/dwrite_2.h
+    include/dwrite_3.h
+)
 make -C wine/build-macos -j"$JOBS" "${WINE_IDL_HEADERS[@]}"
 
 mkdir -p wine/build-arm64ec
