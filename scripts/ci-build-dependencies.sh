@@ -26,7 +26,9 @@ if [ ! -f wine/build-macos/include/config.h ]; then
         --without-sdl --without-udev --without-v4l2 --without-wayland --without-x)
 fi
 make -C wine/build-macos -j"$JOBS" \
-    include/wtypesbase.h include/wtypes.h include/unknwn.h include/objidlbase.h include/dwrite.h include/dwrite_3.h
+    include/wtypesbase.h include/wtypes.h include/unknwn.h include/objidlbase.h \
+    include/dxgiformat.h include/dcommon.h include/dwrite.h include/dwrite_1.h \
+    include/dwrite_2.h include/dwrite_3.h
 
 mkdir -p wine/build-arm64ec
 if [ ! -f wine/build-arm64ec/include/config.h ]; then
