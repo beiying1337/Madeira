@@ -40,6 +40,13 @@ WINE_IDL_HEADERS=(
     include/docobj.h
     include/exdisp.h
     include/shldisp.h
+    include/shtypes.h
+    include/comcat.h
+    include/structuredquerycondition.h
+    include/propsys.h
+    include/objectarray.h
+    include/shobjidl_core.h
+    include/shobjidl.h
     include/dxgiformat.h
     include/dxgicommon.h
     include/dxgitype.h
