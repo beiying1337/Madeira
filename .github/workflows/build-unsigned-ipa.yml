@@ -30,7 +30,7 @@ jobs:
 
       - name: Install build tools
         run: |
-          brew install autoconf automake bison cmake flex meson ninja pkg-config llvm
+          brew install autoconf automake bison cmake flex meson ninja pkg-config llvm sevenzip
           echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
           echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
 
@@ -74,6 +74,53 @@ jobs:
             build/dxmt-ios/obj
             app/Madeira/*.a
           key: madeira-ios-deps-v1-${{ runner.arch }}-${{ hashFiles('.gitmodules', 'FEX', 'wine', 'research/dxmt', 'build/**/*.sh', 'scripts/ci-build-dependencies.sh') }}
+
+      - name: Fetch Microsoft Visual C++ x64 runtime
+        run: |
+          set -euo pipefail
+
+          RUNTIME_DIR="$GITHUB_WORKSPACE/app/Madeira/x86_64-vcruntime"
+          DOWNLOAD_DIR="$RUNNER_TEMP/vcredist-download"
+          EXTRACT_DIR="$RUNNER_TEMP/vcredist-extracted"
+          mkdir -p "$RUNTIME_DIR" "$DOWNLOAD_DIR" "$EXTRACT_DIR"
+
+          curl --fail --location --retry 3 \
+            "https://aka.ms/vs/17/release/vc_redist.x64.exe" \
+            --output "$DOWNLOAD_DIR/VC_redist.x64.exe"
+
+          7zz x -y "$DOWNLOAD_DIR/VC_redist.x64.exe" -o"$DOWNLOAD_DIR/outer"
+
+          CAB_COUNT=0
+          while IFS= read -r cab; do
+            CAB_COUNT=$((CAB_COUNT + 1))
+            7zz x -y "$cab" -o"$EXTRACT_DIR/cab-$CAB_COUNT"
+          done < <(find "$DOWNLOAD_DIR/outer" -type f -iname '*.cab' -print)
+
+          test "$CAB_COUNT" -gt 0
+
+          for dll in \
+            concrt140.dll \
+            msvcp140.dll \
+            msvcp140_1.dll \
+            msvcp140_2.dll \
+            msvcp140_atomic_wait.dll \
+            msvcp140_codecvt_ids.dll \
+            vcamp140.dll \
+            vccorlib140.dll \
+            vcomp140.dll \
+            vcruntime140.dll \
+            vcruntime140_1.dll \
+            vcruntime140_threads.dll
+          do
+            source_file=$(find "$EXTRACT_DIR" -type f -iname "$dll" -print -quit)
+            if [ -z "$source_file" ]; then
+              echo "::error::Microsoft redistributable did not contain $dll"
+              exit 1
+            fi
+            ditto "$source_file" "$RUNTIME_DIR/$dll"
+          done
+
+          test "$(find "$RUNTIME_DIR" -maxdepth 1 -type f -name '*.dll' | wc -l | tr -d ' ')" -eq 12
 
       - name: Build app without signing
         run: |
