@@ -75,28 +75,56 @@ jobs:
             app/Madeira/*.a
           key: madeira-ios-deps-v1-${{ runner.arch }}-${{ hashFiles('.gitmodules', 'FEX', 'wine', 'research/dxmt', 'build/**/*.sh', 'scripts/ci-build-dependencies.sh') }}
 
-      - name: Fetch Microsoft Visual C++ x64 runtime
+      - name: Fetch and verify Microsoft Visual C++ x64 runtime
         run: |
           set -euo pipefail
 
+          sevenzip_allow_warning() {
+            set +e
+            7zz "$@"
+            status=$?
+            set -e
+            if [ "$status" -gt 1 ]; then
+              return "$status"
+            fi
+            return 0
+          }
+
           RUNTIME_DIR="$GITHUB_WORKSPACE/app/Madeira/x86_64-vcruntime"
           DOWNLOAD_DIR="$RUNNER_TEMP/vcredist-download"
-          EXTRACT_DIR="$RUNNER_TEMP/vcredist-extracted"
-          mkdir -p "$RUNTIME_DIR" "$DOWNLOAD_DIR" "$EXTRACT_DIR"
+          PARSER_DIR="$DOWNLOAD_DIR/parser"
+          PACKAGE_DIR="$DOWNLOAD_DIR/packages"
+          UNPACK_DIR="$DOWNLOAD_DIR/unpacked"
+          mkdir -p "$RUNTIME_DIR" "$PARSER_DIR" "$PACKAGE_DIR" "$UNPACK_DIR"
 
           curl --fail --location --retry 3 \
             "https://aka.ms/vs/17/release/vc_redist.x64.exe" \
             --output "$DOWNLOAD_DIR/VC_redist.x64.exe"
 
-          7zz x -y "$DOWNLOAD_DIR/VC_redist.x64.exe" -o"$DOWNLOAD_DIR/outer"
+          # VC_redist is a PE bootstrapper with an appended WiX/Burn payload.
+          # 7-Zip parser mode exposes that payload as 4.cab. Exit code 1 only
+          # means the signed PE has trailing data, so it is a successful warning.
+          sevenzip_allow_warning -t# x -y \
+            "$DOWNLOAD_DIR/VC_redist.x64.exe" \
+            -o"$PARSER_DIR" \
+            4.cab
+          test -s "$PARSER_DIR/4.cab"
 
-          CAB_COUNT=0
-          while IFS= read -r cab; do
-            CAB_COUNT=$((CAB_COUNT + 1))
-            7zz x -y "$cab" -o"$EXTRACT_DIR/cab-$CAB_COUNT"
-          done < <(find "$DOWNLOAD_DIR/outer" -type f -iname '*.cab' -print)
+          sevenzip_allow_warning x -y "$PARSER_DIR/4.cab" -o"$PACKAGE_DIR"
 
-          test "$CAB_COUNT" -gt 0
+          package_index=0
+          while IFS= read -r package; do
+            package_index=$((package_index + 1))
+            destination="$UNPACK_DIR/package-$package_index"
+            mkdir -p "$destination"
+            set +e
+            7zz x -y "$package" -o"$destination"
+            status=$?
+            set -e
+            if [ "$status" -gt 1 ]; then
+              rm -rf "$destination"
+            fi
+          done < <(find "$PACKAGE_DIR" -maxdepth 1 -type f -print)
 
           for dll in \
             concrt140.dll \
@@ -112,15 +140,62 @@ jobs:
             vcruntime140_1.dll \
             vcruntime140_threads.dll
           do
-            source_file=$(find "$EXTRACT_DIR" -type f -iname "$dll" -print -quit)
+            source_file=$(find "$UNPACK_DIR" "$PACKAGE_DIR" -type f \
+              \( -iname "$dll" -o -iname "${dll}_amd64" \) -print -quit)
             if [ -z "$source_file" ]; then
-              echo "::error::Microsoft redistributable did not contain $dll"
+              echo "::error::Microsoft x64 redistributable did not contain $dll"
               exit 1
             fi
             ditto "$source_file" "$RUNTIME_DIR/$dll"
           done
 
-          test "$(find "$RUNTIME_DIR" -maxdepth 1 -type f -name '*.dll' | wc -l | tr -d ' ')" -eq 12
+          python3 - "$RUNTIME_DIR" <<'PY'
+          import hashlib
+          import pathlib
+          import struct
+          import sys
+
+          expected = (
+              "concrt140.dll",
+              "msvcp140.dll",
+              "msvcp140_1.dll",
+              "msvcp140_2.dll",
+              "msvcp140_atomic_wait.dll",
+              "msvcp140_codecvt_ids.dll",
+              "vcamp140.dll",
+              "vccorlib140.dll",
+              "vcomp140.dll",
+              "vcruntime140.dll",
+              "vcruntime140_1.dll",
+              "vcruntime140_threads.dll",
+          )
+          root = pathlib.Path(sys.argv[1])
+          actual = sorted(path.name for path in root.glob("*.dll"))
+          if actual != sorted(expected):
+              raise SystemExit(f"runtime file set mismatch: {actual}")
+
+          for name in expected:
+              path = root / name
+              data = path.read_bytes()
+              if len(data) < 0x100 or data[:2] != b"MZ":
+                  raise SystemExit(f"{name}: not a PE file")
+              pe = struct.unpack_from("<I", data, 0x3C)[0]
+              if data[pe:pe + 4] != b"PE\\0\\0":
+                  raise SystemExit(f"{name}: invalid PE signature")
+              machine = struct.unpack_from("<H", data, pe + 4)[0]
+              if machine != 0x8664:
+                  raise SystemExit(f"{name}: expected x86_64 PE, machine={machine:#x}")
+              optional = pe + 24
+              magic = struct.unpack_from("<H", data, optional)[0]
+              directory = optional + (112 if magic == 0x20B else 96)
+              cert_offset, cert_size = struct.unpack_from(
+                  "<II", data, directory + 4 * 8
+              )
+              if not cert_size or cert_offset + cert_size > len(data):
+                  raise SystemExit(f"{name}: missing intact Authenticode payload")
+              digest = hashlib.sha256(data).hexdigest()
+              print(f"verified {name} sha256={digest}")
+          PY
 
       - name: Build app without signing
         run: |
