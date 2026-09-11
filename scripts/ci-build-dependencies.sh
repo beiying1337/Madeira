@@ -59,6 +59,9 @@ WINE_IDL_HEADERS=(
     include/d3d10shader.h
     include/d3d10effect.h
     include/d3d10_1.h
+    include/d3d11.h
+    include/d3d12sdklayers.h
+    include/d3d12.h
     include/d2d1.h
     include/dwrite.h
     include/dwrite_1.h
