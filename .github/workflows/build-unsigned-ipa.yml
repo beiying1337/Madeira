@@ -29,7 +29,10 @@ jobs:
           fetch-depth: 1
 
       - name: Install build tools
-        run: brew install autoconf automake cmake meson ninja pkg-config llvm
+        run: |
+          brew install autoconf automake bison cmake flex meson ninja pkg-config llvm
+          echo "$(brew --prefix bison)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix flex)/bin" >> "$GITHUB_PATH"
 
       - name: Restore compiled dependency cache
         uses: actions/cache@v4
