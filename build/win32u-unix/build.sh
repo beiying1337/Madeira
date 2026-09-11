@@ -61,6 +61,9 @@ compile_one() {
         echo "FAILED"
         FAILED=$((FAILED + 1))
         FAILED_FILES="$FAILED_FILES $name"
+        if [ -s "$OBJ_DIR/$name.err" ]; then
+            sed -n '1,20p' "$OBJ_DIR/$name.err"
+        fi
     fi
 }
 
