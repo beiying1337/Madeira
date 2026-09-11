@@ -40,6 +40,25 @@ make -C wine/build-arm64ec -j"$JOBS" include/dwrite.h include/dwrite_3.h
 echo "::endgroup::"
 
 echo "::group::Build FEXCore for iOS"
+FEX_IOS_COMPAT="$ROOT/toolchains/fex-ios-compat.h"
+if [ ! -f "$FEX_IOS_COMPAT" ]; then
+    printf '%s\n' \
+      '#pragma once' \
+      '#include <cstddef>' \
+      '#include <cstdint>' \
+      'struct MEMORY_BASIC_INFORMATION {' \
+      '  void* BaseAddress;' \
+      '  std::size_t RegionSize;' \
+      '  std::uint32_t Protect;' \
+      '  std::uint32_t State;' \
+      '  std::uint32_t Type;' \
+      '};' \
+      'using LPCVOID = const void*;' \
+      'inline constexpr std::uint32_t MEM_IMAGE = 0x01000000;' \
+      'inline constexpr std::uint32_t MEM_MAPPED = 0x00040000;' \
+      'inline std::size_t VirtualQuery(LPCVOID, MEMORY_BASIC_INFORMATION*, std::size_t) { return 0; }' \
+      > "$FEX_IOS_COMPAT"
+fi
 cmake -S FEX -B FEX/build-ios -G Ninja \
     -DCMAKE_SYSTEM_NAME=iOS \
     -DCMAKE_SYSTEM_PROCESSOR=arm64 \
@@ -55,7 +74,7 @@ cmake -S FEX -B FEX/build-ios -G Ninja \
     -DENABLE_GDB_SYMBOLS=OFF \
     -DENABLE_OFFLINE_TELEMETRY=OFF \
     -DCMAKE_C_FLAGS="-DFEX_IOS_HOST=1" \
-    -DCMAKE_CXX_FLAGS="-DFEX_IOS_HOST=1" \
+    -DCMAKE_CXX_FLAGS="-DFEX_IOS_HOST=1 -include $FEX_IOS_COMPAT" \
     -DTUNE_CPU=generic
 cmake --build FEX/build-ios --target FEXCore FEXCore_Base JemallocLibs -j "$JOBS"
 echo "::endgroup::"
