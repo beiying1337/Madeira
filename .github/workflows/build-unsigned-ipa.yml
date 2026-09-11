@@ -180,7 +180,7 @@ jobs:
               if len(data) < 0x100 or data[:2] != b"MZ":
                   raise SystemExit(f"{name}: not a PE file")
               pe = struct.unpack_from("<I", data, 0x3C)[0]
-              if data[pe:pe + 4] != b"PE\\0\\0":
+              if data[pe:pe + 4] != bytes((0x50, 0x45, 0, 0)):
                   raise SystemExit(f"{name}: invalid PE signature")
               machine = struct.unpack_from("<H", data, pe + 4)[0]
               if machine != 0x8664:
