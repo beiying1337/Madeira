@@ -63,8 +63,8 @@ if [ "${BUILD_BASE:-0}" = 1 ]; then
     BASE_SOURCES=(
         async atom change class clipboard completion console d3dkmt debugger
         device directory event file handle hook inproc_sync mailslot mapping
-        mutex named_pipe object procfs ptrace queue region registry security
-        semaphore serial signal sock symlink thread timer token trace user
+        mutex named_pipe object procfs ptrace queue region registry semaphore
+        serial signal sock symlink thread timer token trace user
         window winstation
     )
     for name in "${BASE_SOURCES[@]}"; do
