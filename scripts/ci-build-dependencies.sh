@@ -25,7 +25,8 @@ if [ ! -f wine/build-macos/include/config.h ]; then
         --without-gnutls --without-gstreamer --without-oss --without-pulse \
         --without-sdl --without-udev --without-v4l2 --without-wayland --without-x)
 fi
-make -C wine/build-macos -j"$JOBS" include/dwrite.h include/dwrite_3.h
+make -C wine/build-macos -j"$JOBS" \
+    include/objidlbase.h include/dwrite.h include/dwrite_3.h
 
 mkdir -p wine/build-arm64ec
 if [ ! -f wine/build-arm64ec/include/config.h ]; then
@@ -36,7 +37,8 @@ if [ ! -f wine/build-arm64ec/include/config.h ]; then
         --without-gstreamer --without-oss --without-pulse --without-sdl \
         --without-udev --without-v4l2 --without-wayland --without-x)
 fi
-make -C wine/build-arm64ec -j"$JOBS" include/dwrite.h include/dwrite_3.h
+make -C wine/build-arm64ec -j"$JOBS" \
+    include/objidlbase.h include/dwrite.h include/dwrite_3.h
 echo "::endgroup::"
 
 echo "::group::Build FEXCore for iOS"
