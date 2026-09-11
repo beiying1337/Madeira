@@ -42,6 +42,7 @@ echo "::endgroup::"
 echo "::group::Build FEXCore for iOS"
 cmake -S FEX -B FEX/build-ios -G Ninja \
     -DCMAKE_SYSTEM_NAME=iOS \
+    -DCMAKE_SYSTEM_PROCESSOR=arm64 \
     -DCMAKE_OSX_SYSROOT=iphoneos \
     -DCMAKE_OSX_ARCHITECTURES=arm64 \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
