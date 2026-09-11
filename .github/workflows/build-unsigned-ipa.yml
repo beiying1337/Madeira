@@ -50,7 +50,7 @@ jobs:
             build/wineserver/obj
             build/dxmt-ios/obj
             app/Madeira/*.a
-          key: madeira-ios-deps-v1-${{ runner.arch }}-${{ hashFiles('.gitmodules', 'FEX', 'wine', 'research/dxmt', 'build/**/*.sh') }}
+          key: madeira-ios-deps-v1-${{ runner.arch }}-${{ hashFiles('.gitmodules', 'FEX', 'wine', 'research/dxmt', 'build/**/*.sh', 'scripts/ci-build-dependencies.sh') }}
           restore-keys: |
             madeira-ios-deps-v1-${{ runner.arch }}-
 
@@ -73,7 +73,7 @@ jobs:
             build/wineserver/obj
             build/dxmt-ios/obj
             app/Madeira/*.a
-          key: madeira-ios-deps-v1-${{ runner.arch }}-${{ hashFiles('.gitmodules', 'FEX', 'wine', 'research/dxmt', 'build/**/*.sh') }}
+          key: madeira-ios-deps-v1-${{ runner.arch }}-${{ hashFiles('.gitmodules', 'FEX', 'wine', 'research/dxmt', 'build/**/*.sh', 'scripts/ci-build-dependencies.sh') }}
 
       - name: Build app without signing
         run: |

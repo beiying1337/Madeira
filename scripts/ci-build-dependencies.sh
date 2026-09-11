@@ -25,10 +25,11 @@ if [ ! -f wine/build-macos/include/config.h ]; then
         --without-gnutls --without-gstreamer --without-oss --without-pulse \
         --without-sdl --without-udev --without-v4l2 --without-wayland --without-x)
 fi
-make -C wine/build-macos -j"$JOBS" \
-    include/wtypesbase.h include/wtypes.h include/unknwn.h include/objidlbase.h \
-    include/dxgiformat.h include/dcommon.h include/dwrite.h include/dwrite_1.h \
-    include/dwrite_2.h include/dwrite_3.h
+WINE_IDL_HEADERS=()
+for idl in wine/include/*.idl; do
+    WINE_IDL_HEADERS+=("include/$(basename "$idl" .idl).h")
+done
+make -C wine/build-macos -j"$JOBS" "${WINE_IDL_HEADERS[@]}"
 
 mkdir -p wine/build-arm64ec
 if [ ! -f wine/build-arm64ec/include/config.h ]; then
@@ -39,8 +40,7 @@ if [ ! -f wine/build-arm64ec/include/config.h ]; then
         --without-gstreamer --without-oss --without-pulse --without-sdl \
         --without-udev --without-v4l2 --without-wayland --without-x)
 fi
-make -C wine/build-arm64ec -j"$JOBS" \
-    include/objidlbase.h include/dwrite.h include/dwrite_3.h
+make -C wine/build-arm64ec -j"$JOBS" "${WINE_IDL_HEADERS[@]}"
 echo "::endgroup::"
 
 echo "::group::Build FEXCore for iOS"
