@@ -37,6 +37,9 @@ compile_objc() {
         echo "OK"; SUCCEEDED=$((SUCCEEDED+1))
     else
         echo "FAILED"; FAILED=$((FAILED+1)); FAILED_FILES="$FAILED_FILES $name"
+        if [ -s "$OBJ_DIR/$name.err" ]; then
+            sed -n '1,40p' "$OBJ_DIR/$name.err"
+        fi
     fi
 }
 
@@ -48,6 +51,9 @@ compile_cxx() {
         echo "OK"; SUCCEEDED=$((SUCCEEDED+1))
     else
         echo "FAILED"; FAILED=$((FAILED+1)); FAILED_FILES="$FAILED_FILES $name"
+        if [ -s "$OBJ_DIR/$name.err" ]; then
+            sed -n '1,40p' "$OBJ_DIR/$name.err"
+        fi
     fi
 }
 
@@ -78,6 +84,9 @@ for cpp in BlobContainer.cpp DXBCUtils.cpp ShaderBinary.cpp; do
         echo "OK"; SUCCEEDED=$((SUCCEEDED+1))
     else
         echo "FAILED"; FAILED=$((FAILED+1)); FAILED_FILES="$FAILED_FILES $name"
+        if [ -s "$OBJ_DIR/$name.err" ]; then
+            sed -n '1,40p' "$OBJ_DIR/$name.err"
+        fi
     fi
 done
 
