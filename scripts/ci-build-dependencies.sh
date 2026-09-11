@@ -117,16 +117,16 @@ echo "::group::Build remaining iOS static libraries"
 if [ ! -d research/freetype ]; then
     git clone --depth 1 --branch VER-2-13-3 https://github.com/freetype/freetype.git research/freetype
 fi
-build/freetype-ios/build.sh
-build/gnutls-ios/build.sh
-build/ntdll-unix/build.sh
-build/win32u-unix/build.sh
-build/wineserver/build.sh
+bash build/freetype-ios/build.sh
+bash build/gnutls-ios/build.sh
+bash build/ntdll-unix/build.sh
+bash build/win32u-unix/build.sh
+bash build/wineserver/build.sh
 
 if [ ! -e research/dxmt/toolchains ]; then
     ln -s ../../toolchains research/dxmt/toolchains
 fi
-build/dxmt-ios/build.sh
+bash build/dxmt-ios/build.sh
 xcrun -sdk iphoneos libtool -static -o build/dxmt-ios/libdxmt_combined.a \
     build/dxmt-ios/obj/*.o toolchains/llvm-ios-build/lib/*.a
 cp build/dxmt-ios/libdxmt_combined.a app/Madeira/
