@@ -17,6 +17,22 @@ OUT_LIB="$BUILD_DIR/libdxmt_unix.a"
 
 mkdir -p "$OBJ_DIR"
 
+# Meson normally compiles DXMT's embedded Metal helpers to AIR and converts
+# them to C headers. This standalone iOS build bypasses Meson, so reproduce
+# that generator pipeline explicitly.
+SHADER_HEADERS_DIR="$BUILD_DIR/shader-headers"
+mkdir -p "$SHADER_HEADERS_DIR"
+for shader in air_msad air_samplepos air_tessellation; do
+    metal_src="$DXMT_SRC/airconv/shaders/$shader.metal"
+    air_out="$SHADER_HEADERS_DIR/$shader.air"
+    header_out="$SHADER_HEADERS_DIR/$shader.h"
+    if [ ! -s "$header_out" ] || [ "$metal_src" -nt "$header_out" ]; then
+        xcrun -sdk macosx metal -std=metal3.1 --target=air64-apple-macos14.0 \
+            -c "$metal_src" -o "$air_out"
+        xxd -n "$shader" -i "$air_out" "$header_out"
+    fi
+done
+
 COMMON_FLAGS="-arch arm64 -isysroot $SDK -miphoneos-version-min=18.0 -fblocks -O2"
 INCLUDES="-I$DXMT_ROOT/include -I$DXMT_ROOT/libs -I$DXMT_SRC/winemetal -I$DXMT_SRC/airconv"
 INCLUDES_DIRECTX="-I$DXMT_ROOT/include/native/directx -I$DXMT_ROOT/include/native/windows"
