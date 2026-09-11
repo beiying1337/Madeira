@@ -12,13 +12,14 @@ SHIMS_DIR="$REPO_ROOT/build/ntdll-unix/shims"
 OBJ_DIR="$BUILD_DIR/obj"
 mkdir -p "$OBJ_DIR"
 
-# Copy the base library if we don't have one yet
+# Build a clean base archive when no developer-produced archive is present.
+# The original workflow assumed this untracked file already existed, which
+# made fresh clones (including GitHub-hosted runners) impossible to build.
 if [ ! -f "$OBJ_DIR/libwineserver.a" ]; then
     if [ -f "$APP_LIB" ]; then
         cp "$APP_LIB" "$OBJ_DIR/libwineserver.a"
     else
-        echo "ERROR: No base libwineserver.a found"
-        exit 1
+        BUILD_BASE=1
     fi
 fi
 
@@ -56,6 +57,30 @@ compile_one() {
         return 1
     fi
 }
+
+if [ "${BUILD_BASE:-0}" = 1 ]; then
+    echo "=== Building clean wineserver base archive ==="
+    BASE_SOURCES=(
+        async atom change class clipboard completion console d3dkmt debugger
+        device directory event file handle hook inproc_sync mailslot mapping
+        mutex named_pipe object procfs ptrace queue region registry security
+        semaphore serial signal sock symlink thread timer token trace user
+        window winstation
+    )
+    for name in "${BASE_SOURCES[@]}"; do
+        compile_one "$WINE_SRC/server/$name.c" "$name"
+    done
+    # Files requiring iOS replacements are compiled under their canonical
+    # archive member names so the result is complete before the normal patch
+    # replacement pass below.
+    compile_one "$BUILD_DIR/request_ios.c" request
+    compile_one "$BUILD_DIR/main_ios.c" main
+    compile_one "$BUILD_DIR/mach_ios.c" mach
+    compile_one "$BUILD_DIR/unicode_ios.c" unicode
+    compile_one "$BUILD_DIR/fd_ios.c" fd
+    compile_one "$WINE_SRC/server/process.c" process
+    ar rcs "$OBJ_DIR/libwineserver.a" "$OBJ_DIR"/*.o
+fi
 
 # Patched files: name:source_file:replaces_in_archive
 PATCHED_FILES=(

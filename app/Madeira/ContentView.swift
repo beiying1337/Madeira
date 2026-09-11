@@ -4,6 +4,12 @@ import QuartzCore
 import Metal
 import os.log
 
+/// Localizes strings assembled dynamically. SwiftUI localizes literal keys
+/// automatically, but values passed through helper views need this lookup.
+private func L(_ key: String) -> String {
+    NSLocalizedString(key, tableName: nil, bundle: .main, value: key, comment: "")
+}
+
 // 2026-07-03 window-hosted Metal layer.
 //
 // The presenting CAMetalLayer must NOT be a SwiftUI-hosted view's backing
@@ -1037,7 +1043,7 @@ struct ContentView: View {
             input.relative.toggle()
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         } label: {
-            Text(input.relative ? "Relative" : "Absolute")
+            Text(L(input.relative ? "Relative" : "Absolute"))
                 .font(.system(size: 13, weight: .semibold))
                 .frame(minWidth: 82, minHeight: 32)
                 .background((input.relative ? Color.accentColor : Color.secondary).opacity(0.28))
@@ -2436,8 +2442,8 @@ struct SetupGuideView: View {
                 .foregroundColor(.accentColor)
                 .frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.subheadline).fontWeight(.medium)
-                Text(detail).font(.caption).foregroundColor(.secondary)
+                Text(L(title)).font(.subheadline).fontWeight(.medium)
+                Text(L(detail)).font(.caption).foregroundColor(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -2450,7 +2456,7 @@ struct SetupGuideView: View {
                 .foregroundColor(.white)
                 .frame(width: 22, height: 22)
                 .background(Circle().fill(Color.accentColor))
-            Text(text)
+            Text(L(text))
                 .font(.subheadline)
         }
         .padding(.vertical, 2)
@@ -3028,8 +3034,7 @@ struct MappingPanel: View {
 
     private var controllerTab: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("XInput isn't wired up yet. These save with your layout but do "
-                 + "nothing when pressed — controller support lands with the Wine HID stack.")
+            Text(L("XInput isn't wired up yet. These save with your layout but do nothing when pressed — controller support lands with the Wine HID stack."))
                 .font(.system(size: 11))
                 .foregroundStyle(.orange.opacity(0.95))
                 .fixedSize(horizontal: false, vertical: true)
@@ -3047,7 +3052,7 @@ struct MappingPanel: View {
 
     private func section(_ title: String, _ items: [(String, ControlAction)]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
+            Text(L(title))
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.45))
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 48), spacing: 6)], spacing: 6) {
@@ -3064,7 +3069,7 @@ struct MappingPanel: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             if let i = m.index(of: control.id) { m.controls[i].action = action }
         } label: {
-            Text(label)
+            Text(L(label))
                 .font(.system(size: 12, weight: .medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
