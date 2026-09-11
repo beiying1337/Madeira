@@ -54,6 +54,8 @@ cmake -S FEX -B FEX/build-ios -G Ninja \
     -DENABLE_LTO=OFF \
     -DENABLE_GDB_SYMBOLS=OFF \
     -DENABLE_OFFLINE_TELEMETRY=OFF \
+    -DCMAKE_C_FLAGS="-DFEX_IOS_HOST=1" \
+    -DCMAKE_CXX_FLAGS="-DFEX_IOS_HOST=1" \
     -DTUNE_CPU=generic
 cmake --build FEX/build-ios --target FEXCore FEXCore_Base JemallocLibs -j "$JOBS"
 echo "::endgroup::"
