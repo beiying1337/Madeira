@@ -31,7 +31,10 @@ mkdir -p wine/build-arm64ec
 if [ ! -f wine/build-arm64ec/include/config.h ]; then
     (cd wine/build-arm64ec && ../configure --host=aarch64-w64-mingw32 \
         --enable-archs=arm64ec --with-wine-tools=../build-macos \
-        --without-x --without-wayland)
+        --without-alsa --without-cups --without-dbus --without-fontconfig \
+        --without-freetype --without-gettext --without-gnutls \
+        --without-gstreamer --without-oss --without-pulse --without-sdl \
+        --without-udev --without-v4l2 --without-wayland --without-x)
 fi
 make -C wine/build-arm64ec -j"$JOBS" include/dwrite.h include/dwrite_3.h
 echo "::endgroup::"
