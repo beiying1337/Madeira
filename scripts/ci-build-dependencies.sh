@@ -37,6 +37,9 @@ WINE_IDL_HEADERS=(
     include/servprov.h
     include/urlmon.h
     include/msxml.h
+    include/docobj.h
+    include/exdisp.h
+    include/shldisp.h
     include/dxgiformat.h
     include/dxgicommon.h
     include/dxgitype.h
