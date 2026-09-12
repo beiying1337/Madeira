@@ -4,6 +4,8 @@
 #import <Foundation/Foundation.h>
 #import <os/log.h>
 #import <sys/stat.h>
+#import <errno.h>
+#import <string.h>
 #import <pthread.h>
 #import <stdarg.h>
 
