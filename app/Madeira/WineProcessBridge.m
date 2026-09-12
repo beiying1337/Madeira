@@ -418,6 +418,29 @@ void madeira_seed_prefix_if_needed(const char *prefix_path) {
             }
         }
 
+        /* Explorer's /desktop switch accepts only one child command.  Use a
+         * tiny launcher so the desktop keeps its services child and also opens
+         * a normal Explorer file-manager window.  No path argument is supplied,
+         * therefore it does not force-open the D: mapping.  Rewrite every launch
+         * so existing prefixes receive fixes without reinstalling. */
+        NSString *desktopLauncher =
+            [prefix stringByAppendingPathComponent:@"drive_c/madeira-desktop.bat"];
+        NSString *desktopLauncherBody =
+            @"@echo off\r\n"
+             @"start \"\" C:\\windows\\system32\\services.exe\r\n"
+             @"start \"\" C:\\windows\\system32\\explorer.exe\r\n"
+             @"exit /b 0\r\n";
+        NSError *launcherError = nil;
+        if (![desktopLauncherBody writeToFile:desktopLauncher
+                                    atomically:YES
+                                      encoding:NSUTF8StringEncoding
+                                         error:&launcherError]) {
+            LOG("Could not write desktop Explorer launcher: %{public}s",
+                launcherError.localizedDescription.UTF8String);
+        } else {
+            LOG("Desktop launcher ready (services + plain Explorer)");
+        }
+
         /* ml666: repair the usersmadeira escaping damage BEFORE anything reads
          * the registry, then the (now scoped) ml581 legacy cleanup. */
         madeira_repair_profile( prefix );

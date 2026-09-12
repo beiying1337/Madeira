@@ -1750,8 +1750,10 @@ struct ContentView: View {
     private func configureDefaultExplorer() {
         let deskW = 960, deskH = 540
         setenv("MADEIRA_EXE", "explorer.exe", 1)
+        // Keep explorer's virtual desktop, and let its child batch start
+        // services plus a separate plain Explorer file-manager window.
         setenv("MADEIRA_ARGS",
-               "/desktop=shell,\(deskW)x\(deskH) C:\\windows\\system32\\services.exe", 1)
+               "/desktop=shell,\(deskW)x\(deskH) C:\\windows\\system32\\cmd.exe /c C:\\madeira-desktop.bat", 1)
         setenv("MADEIRA_DESKTOP", "1", 1)
         setenv("MADEIRA_SCREEN_W", String(deskW), 1)
         setenv("MADEIRA_SCREEN_H", String(deskH), 1)

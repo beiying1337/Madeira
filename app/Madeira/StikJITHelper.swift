@@ -165,11 +165,12 @@ enum StikJITHelper {
                 : "  bad region kept as pin (vm_deallocate kr=\(dkr))")
         }
         guard let rxPtr = rxPtrOpt else {
-            LogStore.shared.log("BAD POOL: no valid placement after retries. Killing in 10s — please relaunch.", level: .error)
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 10) {
-                LogStore.shared.log("BAD POOL — exiting now. Relaunch the app.", level: .error)
-                exit(0)
-            }
+            // The caller owns startup lifecycle.  A delayed process-wide exit can
+            // outlive the failed attempt and kill a later successful Wine launch
+            // (observed while the Start menu was already visible).  Report failure
+            // synchronously; ContentView will abort only this launch and keep the
+            // app usable for retry/relaunch.
+            LogStore.shared.log("BAD POOL: no valid placement after retries; Wine startup cancelled.", level: .error)
             return nil
         }
         let rxAddr = Int(bitPattern: rxPtr)
