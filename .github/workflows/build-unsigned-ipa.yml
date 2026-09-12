@@ -216,6 +216,31 @@ jobs:
             DEVELOPMENT_TEAM= \
             clean build
 
+      - name: Install Wine fonts and complete NLS tables
+        run: |
+          set -euo pipefail
+
+          APP_PATH=$(find "$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          mkdir -p "$APP_PATH/fonts" "$APP_PATH/nls"
+
+          while IFS= read -r font; do
+            ditto "$font" "$APP_PATH/fonts/$(basename "$font")"
+          done < <(find wine/fonts -maxdepth 1 -type f -name '*.ttf' -print)
+
+          while IFS= read -r table; do
+            ditto "$table" "$APP_PATH/nls/$(basename "$table")"
+          done < <(find wine/nls -maxdepth 1 -type f -name '*.nls' -print)
+
+          test -s "$APP_PATH/fonts/tahoma.ttf"
+          test -s "$APP_PATH/fonts/marlett.ttf"
+          test -s "$APP_PATH/nls/c_936.nls"
+          test -s "$APP_PATH/nls/c_10000.nls"
+
+          FONT_COUNT=$(find "$APP_PATH/fonts" -maxdepth 1 -type f -name '*.ttf' | wc -l | tr -d ' ')
+          NLS_COUNT=$(find "$APP_PATH/nls" -maxdepth 1 -type f -name '*.nls' | wc -l | tr -d ' ')
+          echo "Bundled $FONT_COUNT Wine fonts and $NLS_COUNT NLS tables"
+
       - name: Package unsigned IPA
         run: |
           APP_PATH=$(find "$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -print -quit)
