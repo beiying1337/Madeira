@@ -1859,7 +1859,23 @@ struct ContentView: View {
             // so it can be swapped between runs without a rebuild, and deleting
             // the file reverts to the proven default. Clamped to sane values --
             // a typo here would otherwise move the VA floor with it.
-            var poolSizeMB = 896
+            /* A plain Wine desktop does not need Steam/CEF's 896 MB pool.
+             * Requesting that single huge RX object from JITServer can leave
+             * send_command("_M...") blocked with the entire inferior stopped
+             * at BRK #0xf00d.  Because every Madeira thread is suspended, iOS
+             * lifecycle callbacks cannot run and relaunch shows the frozen
+             * launch snapshot until the phone is rebooted.  Keep 896 MB for
+             * Steam/game sessions, but use the previously validated 384 MB
+             * size for the standalone desktop.  madeira-pool.txt can still
+             * override either choice. */
+            let desktopArgs = getenv("MADEIRA_ARGS").map { String(cString: $0) } ?? ""
+            let isPlainDesktop = getenv("MADEIRA_DESKTOP") != nil
+                && desktopArgs.localizedCaseInsensitiveContains("services.exe")
+                && !desktopArgs.localizedCaseInsensitiveContains("steam-launch")
+            var poolSizeMB = isPlainDesktop ? 384 : 896
+            if isPlainDesktop {
+                logStore.log("Standalone Wine desktop: using 384MB JIT pool to avoid debugger allocation stall")
+            }
             if let d = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first,
                let txt = try? String(contentsOf: d.appendingPathComponent("madeira-pool.txt"), encoding: .utf8),
                let mb = Int(txt.trimmingCharacters(in: .whitespacesAndNewlines)),
