@@ -1,5 +1,6 @@
 import SwiftUI
 import Foundation
+import Darwin
 
 @main
 struct MadeiraApp: App {
@@ -8,9 +9,9 @@ struct MadeiraApp: App {
     init() {
         /* Builds through run 36 wrote the complete JIT pool to Documents after
          * the first Wine exception.  The pool is now 896 MB, so that persistent
-         * file can leave subsequent launches with no usable container space and
-         * only the iOS launch snapshot visible.  Reinstalling appeared to fix it
-         * solely because reinstall removed the app container.
+         * file wastes container space and can aggravate relaunch failures.
+         * Remove this separate legacy artifact even though the persistent white
+         * screen itself is handled by the scene lifecycle guard below.
          *
          * Unlink it before ContentView/LogStore/Metal are constructed.  Also
          * discard runaway logs left by an interrupted Wine session; normal logs
