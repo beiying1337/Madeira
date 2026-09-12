@@ -4655,12 +4655,15 @@ skip_reclaim_band: ;
                             fp_walk = frame_buf[0];
                         }
                     }
-                    /* One-shot dump: on the first UNHANDLED exec fault, dump the
-                     * JIT-pool RW alias contents around the relevant FEX CodeBuffer
-                     * slots to a file. Lets us disassemble FEX-emitted ARM64 offline
-                     * to verify codegen correctness independently. */
+                    /* Opt-in diagnostic dump only.  The pool is currently 896 MB;
+                     * writing it on every ordinary guest crash nearly doubles the
+                     * app footprint and can turn a recoverable Wine exception into
+                     * an iOS jetsam.  Developers can explicitly set
+                     * MADEIRA_DUMP_JIT_POOL=1 when an offline code-buffer dump is
+                     * actually needed. */
                     static volatile int dumped = 0;
-                    if (cnt == 1 && __sync_bool_compare_and_swap(&dumped, 0, 1))
+                    if (getenv("MADEIRA_DUMP_JIT_POOL") && cnt == 1 &&
+                        __sync_bool_compare_and_swap(&dumped, 0, 1))
                     {
                         extern void *ios_jit_rw_base_global;
                         extern size_t ios_jit_pool_size_global;
@@ -4675,9 +4678,8 @@ skip_reclaim_band: ;
                             int fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                             if (fd >= 0)
                             {
-                                /* Dump the entire JIT pool RW alias. ~128MB but
-                                 * mostly zero. Compresses well; helpful to scan
-                                 * any populated region. */
+                                /* Dump the entire JIT pool RW alias. It is sparse
+                                 * in content but the raw on-device file is not. */
                                 ssize_t off = 0;
                                 size_t total = ios_jit_pool_size_global;
                                 while ((size_t)off < total)

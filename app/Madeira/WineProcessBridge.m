@@ -276,6 +276,44 @@ static void madeira_undo_appdata_skeleton(NSString *prefix)
 }
 
 
+
+/* Keep both profile names usable.  The shipped registry on older prefixes
+ * points at C:\\users\\mobile, while newer templates use C:\\users\\madeira.
+ * Shell32 assumes the registered Desktop path exists during explorer startup;
+ * a missing directory can leave its desktop PIDL/name NULL.  Do this before
+ * wineserver/explorer starts, on every launch, so existing prefixes self-heal. */
+static void madeira_ensure_profile_directories(NSString *prefix)
+{
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSArray<NSString *> *profiles = @[ @"mobile", @"madeira" ];
+    NSArray<NSString *> *leaves = @[
+        @"Desktop", @"Documents", @"Downloads", @"Music", @"Pictures", @"Videos",
+        @"AppData/Roaming", @"AppData/Local", @"AppData/LocalLow",
+        @"AppData/Roaming/Microsoft/Windows/Start Menu/Programs"
+    ];
+    int failures = 0;
+
+    for (NSString *profile in profiles)
+    {
+        NSString *root = [prefix stringByAppendingPathComponent:
+            [NSString stringWithFormat:@"drive_c/users/%@", profile]];
+        for (NSString *leaf in leaves)
+        {
+            NSError *error = nil;
+            if (![fm createDirectoryAtPath:[root stringByAppendingPathComponent:leaf]
+               withIntermediateDirectories:YES attributes:nil error:&error])
+            {
+                failures++;
+                dprintf(STDERR_FILENO, "[profile-dir] FAILED %s/%s: %s\n",
+                        profile.UTF8String, leaf.UTF8String,
+                        error.localizedDescription.UTF8String);
+            }
+        }
+    }
+    dprintf(STDERR_FILENO, "[profile-dir] ensured mobile + madeira shell folders (%d failure(s))\n",
+            failures);
+}
+
 // Wine's main entry point (from ntdll unix loader.c, statically linked)
 extern void __wine_main(int argc, char *argv[]);
 
@@ -340,6 +378,7 @@ void madeira_seed_prefix_if_needed(const char *prefix_path) {
         madeira_repair_profile( prefix );
         /* ml581: see madeira_undo_appdata_skeleton() above. */
         madeira_undo_appdata_skeleton( prefix );
+        madeira_ensure_profile_directories( prefix );
     }
 }
 
