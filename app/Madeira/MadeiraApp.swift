@@ -3,6 +3,8 @@ import Foundation
 
 @main
 struct MadeiraApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     init() {
         /* Builds through run 36 wrote the complete JIT pool to Documents after
          * the first Wine exception.  The pool is now 896 MB, so that persistent
@@ -33,6 +35,17 @@ struct MadeiraApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+        }
+        .onChange(of: scenePhase) { phase in
+            /* With JITServer attached, swiping Madeira away while Wine is
+             * running can leave the debugged task suspended instead of dead.
+             * Relaunch then reconnects to that wedged UI until a device reboot
+             * or reinstall finally kills it.  Backgrounding an active Wine
+             * session is not resumable anyway, so terminate synchronously
+             * before iOS suspends us and guarantee a clean next launch. */
+            if phase == .background && wine_process_is_running() != 0 {
+                _exit(0)
+            }
         }
     }
 }
