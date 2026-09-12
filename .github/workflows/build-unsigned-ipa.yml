@@ -8,6 +8,7 @@ on:
       - app/**
       - build/**
       - scripts/ci-build-dependencies.sh
+      - scripts/patch-shell32-null-target.py
       - .github/workflows/build-unsigned-ipa.yml
 
 concurrency:

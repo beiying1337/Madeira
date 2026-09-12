@@ -6,6 +6,12 @@ JOBS="$(sysctl -n hw.logicalcpu 2>/dev/null || echo 4)"
 MINGW_DIR="$ROOT/toolchains/llvm-mingw-20260421-ucrt-macos-universal"
 
 cd "$ROOT"
+
+echo "::group::Patch bundled Wine shell32"
+python3 "$ROOT/scripts/patch-shell32-null-target.py" \
+    "$ROOT/app/Madeira/aarch64-windows/shell32.dll"
+echo "::endgroup::"
+
 git submodule sync --recursive
 git submodule update --init --recursive --jobs "$JOBS"
 
