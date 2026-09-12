@@ -859,6 +859,7 @@ struct ContentView: View {
     @State private var jitStatus: JITStatus = .unknown
     @State private var entitlements: EntitlementStatus?
     @State private var debuggerAttached = isDebuggerAttached()
+    @State private var autoExplorerLaunchStarted = false
     @ObservedObject private var input = InputSettings.shared
     @State private var pointerPanel = false
     @Namespace private var pointerNS
@@ -900,6 +901,11 @@ struct ContentView: View {
                 jit_install_trap_handler()
                 entitlements = EntitlementStatus.check()
                 logEntitlementStatus()
+                // If JIT is already attached when Madeira opens, start the
+                // normal Wine virtual desktop automatically after the view is ready.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    launchDefaultExplorerIfReady()
+                }
             }
         }
     }
@@ -1436,13 +1442,8 @@ struct ContentView: View {
                     // Known risk: if shellwindows_init beats services.exe's
                     // RPC_Init, OpenSCManager fails → watch whether that
                     // fails fast or hits the RaiseException→CS wedge again.
-                    let deskW = 960, deskH = 540
-                    setenv("MADEIRA_EXE", "explorer.exe", 1)
-                    setenv("MADEIRA_ARGS",
-                           "/desktop=shell,\(deskW)x\(deskH) C:\\windows\\system32\\services.exe", 1)
-                    setenv("MADEIRA_DESKTOP", "1", 1)
-                    setenv("MADEIRA_SCREEN_W", String(deskW), 1)
-                    setenv("MADEIRA_SCREEN_H", String(deskH), 1)
+                    configureDefaultExplorer()
+                    autoExplorerLaunchStarted = true
                     runWineFullSequence()
                 }
                 .buttonStyle(.borderedProminent)
@@ -1736,11 +1737,36 @@ struct ContentView: View {
             if success {
                 jitStatus = .available
                 logStore.log("JIT enabled! Debugger attached.", level: .success)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    launchDefaultExplorerIfReady()
+                }
             } else {
                 jitStatus = .unavailable
                 logStore.log("Failed to enable JIT via StikDebug", level: .error)
             }
         }
+    }
+
+    private func configureDefaultExplorer() {
+        let deskW = 960, deskH = 540
+        setenv("MADEIRA_EXE", "explorer.exe", 1)
+        setenv("MADEIRA_ARGS",
+               "/desktop=shell,\(deskW)x\(deskH) C:\\windows\\system32\\services.exe", 1)
+        setenv("MADEIRA_DESKTOP", "1", 1)
+        setenv("MADEIRA_SCREEN_W", String(deskW), 1)
+        setenv("MADEIRA_SCREEN_H", String(deskH), 1)
+    }
+
+    private func launchDefaultExplorerIfReady() {
+        guard !autoExplorerLaunchStarted else { return }
+        guard jit_check_debugged() else {
+            logStore.log("JIT not enabled; press Enable JIT to start the Wine desktop.", level: .info)
+            return
+        }
+        autoExplorerLaunchStarted = true
+        configureDefaultExplorer()
+        logStore.log("Starting Wine explorer desktop automatically.", level: .success)
+        runWineFullSequence()
     }
 
     /// Full sequence: allocate JIT pool, start wineserver, start Wine.

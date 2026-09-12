@@ -365,6 +365,22 @@ void madeira_seed_prefix_if_needed(const char *prefix_path) {
             }
         }
 
+        // The app's Documents root is shown as "Madeira" in the Files app.
+        // Keep a stable user folder at Madeira/file and expose it inside Wine as D:.
+        NSString *fileRoot = [[prefix stringByDeletingLastPathComponent]
+            stringByAppendingPathComponent:@"file"];
+        NSError *fileError = nil;
+        BOOL fileReady = [fm createDirectoryAtPath:fileRoot
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:&fileError];
+        if (!fileReady) {
+            LOG("Could not create Madeira/file: %{public}s",
+                fileError.localizedDescription.UTF8String);
+        } else {
+            LOG("Madeira/file ready at %{public}s", fileRoot.UTF8String);
+        }
+
         // (Re)create dosdevices/c: -> ../drive_c. The tarball omits
         // dosdevices because Mac's z: -> / is wrong here.
         NSString *dosdev = [prefix stringByAppendingPathComponent:@"dosdevices"];
@@ -372,6 +388,35 @@ void madeira_seed_prefix_if_needed(const char *prefix_path) {
         NSString *cLink = [dosdev stringByAppendingPathComponent:@"c:"];
         [fm removeItemAtPath:cLink error:nil];
         [fm createSymbolicLinkAtPath:cLink withDestinationPath:@"../drive_c" error:nil];
+
+        // Map the app's user file folder to Wine's D: drive. Do not launch it:
+        // explorer still starts at the normal virtual desktop.
+        if (fileReady) {
+            NSString *dLink = [dosdev stringByAppendingPathComponent:@"d:"];
+            NSString *existingDTarget =
+                [fm destinationOfSymbolicLinkAtPath:dLink error:nil];
+            if (existingDTarget &&
+                ![existingDTarget isEqualToString:fileRoot]) {
+                [fm removeItemAtPath:dLink error:nil];
+                existingDTarget = nil;
+            }
+            if (existingDTarget) {
+                LOG("Wine drive D: already mapped to %{public}s",
+                    existingDTarget.UTF8String);
+            } else if (![fm fileExistsAtPath:dLink]) {
+                NSError *linkError = nil;
+                if ([fm createSymbolicLinkAtPath:dLink
+                              withDestinationPath:fileRoot
+                                           error:&linkError]) {
+                    LOG("Wine drive D: mapped to %{public}s", fileRoot.UTF8String);
+                } else {
+                    LOG("Could not map Wine drive D: %{public}s",
+                        linkError.localizedDescription.UTF8String);
+                }
+            } else {
+                LOG("Wine drive D: is occupied by a non-symlink; leaving it unchanged");
+            }
+        }
 
         /* ml666: repair the usersmadeira escaping damage BEFORE anything reads
          * the registry, then the (now scoped) ml581 legacy cleanup. */
