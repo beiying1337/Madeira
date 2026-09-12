@@ -104,8 +104,13 @@ static void *wineserver_thread_func(void *arg) {
 
         wine_log_msg("WINEPREFIX=%s", g_prefix_path);
 
-        // Create the Wine prefix directory if it doesn't exist
-        mkdir(g_prefix_path, 0755);
+        // wineserver refuses a prefix that can be accessed by other users.
+        // FileManager/tar extraction may leave Documents/wine at 0755; repair
+        // both fresh and existing prefixes immediately before server startup.
+        if (mkdir(g_prefix_path, 0700) == -1 && errno != EEXIST)
+            wine_log_msg("mkdir prefix failed: %s", strerror(errno));
+        if (chmod(g_prefix_path, 0700) != 0)
+            wine_log_msg("chmod prefix to 0700 failed: %s", strerror(errno));
 
         // Tell wineserver where NLS files are (inside the app bundle)
         NSString *nlsDir = [NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"nls"];
